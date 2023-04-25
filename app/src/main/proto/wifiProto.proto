@@ -1,0 +1,20 @@
+syntax = "proto3";
+option java_package ="com.proto.wifiProto";
+option java_multiple_files = true;
+option java_outer_classname = "WifiProto";
+
+
+service WifiService {
+  //unary call
+  rpc WifiInformations (WifiInformationsRequest) returns (WifiInformationsResponse);
+}
+message WifiInformationsRequest {
+  string status = 1;
+  string SSID = 2;
+  string MACAdress = 3;
+  string Frequency = 4;
+}
+message WifiInformationsResponse {
+  string message = 1;
+  int32 code =2;
+}
