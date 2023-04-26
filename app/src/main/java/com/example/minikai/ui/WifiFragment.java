@@ -1,6 +1,8 @@
 package com.example.minikai.ui;
 
 import  android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -14,7 +16,6 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.room.Room;
 import androidx.room.util.StringUtil;
-
 import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.util.Log;
@@ -31,6 +32,7 @@ import com.example.minikai.room.WifiDatabase;
 import com.proto.wifiProto.WifiInformationsRequest;
 import com.proto.wifiProto.WifiInformationsResponse;
 import com.proto.wifiProto.WifiServiceGrpc;
+import com.example.minikai.wifiReceiver;
 
 
 import java.util.List;
@@ -58,6 +60,7 @@ public class WifiFragment extends Fragment {
     private static int WifiIntervalChange =  20*60*2000;
     private Handler handler = new Handler();
     private String lastWifi = "";
+    String SSID,macAddress,Frequency;
 
     public WifiFragment() {
         // Required empty public constructor
@@ -102,72 +105,59 @@ public class WifiFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
-
         /////////////////Roda a função que envia o código para o servidor a cada 20 minutos
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                handler.post(() -> sendWifiDataToServer(view));
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+
+
+                        WifiManager wifiManager = (WifiManager) getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                        String isConnected = Boolean.toString(wifiManager.isWifiEnabled());
+                        //Podemos pegar as informações do wifi que nosso device está conectado
+                        WifiInfo wifi = wifiManager.getConnectionInfo();
+                        SSID = wifi.getSSID();
+                        macAddress = wifi.getBSSID();
+                        Frequency = Integer.toString(wifi.getFrequency());
+
+                        ///Validando os dados antes de manda-los para o servidor
+
+                        if(!wifi.getSSID().equals("<unknown ssid>") && !wifi.getBSSID().equals("02:00:00:00:00:00") && !Integer.toString(wifi.getFrequency()).equals("-1") && wifiManager.isWifiEnabled()){
+
+                            Log.d("batata",isConnected+SSID+macAddress+" "+Frequency);
+
+                            sendWifiDataToServer(view,isConnected,SSID,macAddress,Frequency);
+                            printWifiDataOnScreen(view,SSID,Frequency,macAddress,isConnected);
+                        }else {
+                            printWifiDataOnScreen(view,"","","",isConnected);
+                        }
+                    }
+                });
             }
         },0,WifiIntervalChange);
     }
-    public void sendWifiDataToServer(View view){
+    public void sendWifiDataToServer(View view,String isConnected,String SSID,String macAddress,String Frequency){
+        ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost",8080).usePlaintext().build();
+        WifiServiceGrpc.WifiServiceBlockingStub wifiStub = WifiServiceGrpc.newBlockingStub(channel);
+        WifiInformationsRequest wifiInformationsRequest = WifiInformationsRequest.newBuilder()
+                .setStatus(isConnected).setSSID(SSID)
+                .setMACAdress(macAddress).setFrequency(Frequency)
+                .build();
+        WifiInformationsResponse response= wifiStub.wifiInformations(wifiInformationsRequest);
 
-        String SSID,macAdress,Frequency;
-        WifiManager wifiManager = (WifiManager) getActivity().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-     //   Button btnWifi =(Button) view.findViewById(R.id.btnWifi);
-        String isConnected = Boolean.toString(wifiManager.isWifiEnabled());
-        //Podemos pegar as informações do wifi que nosso device está conectado
-        WifiInfo wifi = wifiManager.getConnectionInfo();
-        SSID = wifi.getSSID();
-        macAdress = wifi.getBSSID();
-        Frequency = Integer.toString(wifi.getFrequency());
-//        btnWifi.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//
-//               if (wifiManager.isWifiEnabled())
-//               {
-//                   btnWifi.setText("Desativar wifi");
-//                   wifiManager.setWifiEnabled(false);
-//               }else {
-//                   btnWifi.setText("Ativar wifi");
-//                   wifiManager.setWifiEnabled(true);
-//               }
-//
-//            }
-//        });
+        if(response.getMessage().equals("Dados recebidos com sucesso")){
+            Log.d("sendWifiServer",SSID+macAddress+" "+Frequency);
 
+            sendDataToRoom(SSID,Frequency,macAddress);
 
-
-
-
-            ///Validando os dados antes de manda-los para o servidor
-            if(!SSID.equals("<unknown ssid>") && !macAdress.equals("02:00:00:00:00:00") && !Frequency.equals("-1") && wifiManager.isWifiEnabled()){
-                ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost",8080).usePlaintext().build();
-                WifiServiceGrpc.WifiServiceBlockingStub wifiStub = WifiServiceGrpc.newBlockingStub(channel);
-                WifiInformationsRequest wifiInformationsRequest = WifiInformationsRequest.newBuilder()
-                        .setStatus(isConnected).setSSID(SSID)
-                        .setMACAdress(macAdress).setFrequency(Frequency)
-                        .build();
-                WifiInformationsResponse response= wifiStub.wifiInformations(wifiInformationsRequest);
-
-                if(response.getMessage().equals("Dados recebidos com sucesso")){
-
-                    printWifiDataOnScreen(view,SSID,Frequency,macAdress,isConnected);
-                    sendDataToRoom(SSID,Frequency,macAdress);
-
-                }else{
-                    Log.d("BancoWifis","wifis");
-                }
-            }else {
-                printWifiDataOnScreen(view,"","","",isConnected);
-            }
-
+        }else{
+            Log.d("BancoWifis","wifis");///////////////////////
+        }
     }
-public void printWifiDataOnScreen(View view, String SSID, String Frequency, String macAdress, String isConnected){
+public void printWifiDataOnScreen(View view, String SSID, String Frequency, String macAddress, String isConnected){
     TextView StatusTextview =(TextView) view.findViewById(R.id.wifiStatus);
     TextView SSIDTextview =(TextView) view.findViewById(R.id.SSID);
     TextView frequencyTextview =(TextView) view.findViewById(R.id.wifiFrequency);
@@ -179,7 +169,7 @@ public void printWifiDataOnScreen(View view, String SSID, String Frequency, Stri
         StatusTextview.setText(" Conectado");
         SSIDTextview.setText(" "+SSID);
         frequencyTextview.setText(" "+Frequency);
-        macAdressTextview.setText(" "+ macAdress);
+        macAdressTextview.setText(" "+ macAddress);
     }else{
         disconnectedWifi.setText("Wifi desativado");
         StatusTextview.setText(" ");
@@ -189,17 +179,19 @@ public void printWifiDataOnScreen(View view, String SSID, String Frequency, Stri
     }
 
 }
-public void sendDataToRoom(String SSID, String Frequency, String macAdress){
+public void sendDataToRoom(String SSID, String Frequency, String macAddress){
     WifiDatabase db = Room.databaseBuilder(getActivity().getApplicationContext(),
             WifiDatabase.class,"wifi-database").allowMainThreadQueries().build();
 
-    Wifi currentWifi = new Wifi("Conectado",macAdress,SSID,Frequency);
+    Wifi currentWifi = new Wifi("Conectado",macAddress,SSID,Frequency);
+    Log.d("sendWifiRoom",SSID+macAddress+" "+Frequency);
     db.wifiDAO().insertAll(currentWifi);
+    Log.d("batata","pos");
     List<Wifi> wifiList = db.wifiDAO().getAllWifi();
     String wifis="";
 
     for (Wifi wifiItem : wifiList){
-        wifis+= wifiItem.status + " - " + wifiItem.SSID + " - " + wifiItem.wifiFrequency + " - " +  wifiItem.wifiMacAdress;
+        wifis+= wifiItem.status + " - " + wifiItem.SSID + " - " + wifiItem.wifiFrequency + " - " +  wifiItem.wifiMacAddress;
     }
 
     Log.d("BancoWifis",wifis);

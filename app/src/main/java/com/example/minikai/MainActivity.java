@@ -3,21 +3,17 @@ package com.example.minikai;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.content.Context;
-import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
     String[] permissions ={"android.permission.ACCESS_FINE_LOCATION"};
     private wifiReceiver wifiReceiver;
-//    Intent intentFilter = new IntentFilter();
+    public IntentFilter intentFilter = new IntentFilter();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,10 +21,11 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         requestPermissions(permissions,80);
 
-//
-//        wifiReceiver = new wifiReceiver();
-//
-//        registerReceiver();
+        intentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+
+        wifiReceiver = new wifiReceiver();
+
+        registerReceiver(wifiReceiver,intentFilter);
 
     }
 
