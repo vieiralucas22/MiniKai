@@ -13,6 +13,7 @@ message WifiInformationsRequest {
   string SSID = 2;
   string MACAdress = 3;
   string Frequency = 4;
+  string currentTime = 5;
 }
 message WifiInformationsResponse {
   string message = 1;

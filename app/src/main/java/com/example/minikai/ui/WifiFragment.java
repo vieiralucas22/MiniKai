@@ -1,40 +1,35 @@
 package com.example.minikai.ui;
 
 import  android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.pm.PackageManager;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.os.Bundle;
-import android.content.BroadcastReceiver;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.room.Room;
-import androidx.room.util.StringUtil;
+
 import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.TextView;
 
 //import com.example.minikai.Manifest;
 import com.example.minikai.R;
-import com.example.minikai.room.Wifi;
+import com.example.minikai.room.Entity.WifiInfoEntity;
+import com.example.minikai.room.WifiInfos.WifiInfos;
 import com.example.minikai.room.WifiDatabase;
+import com.example.minikai.room.WifiInfosMapper;
 import com.proto.wifiProto.WifiInformationsRequest;
 import com.proto.wifiProto.WifiInformationsResponse;
 import com.proto.wifiProto.WifiServiceGrpc;
-import com.example.minikai.wifiReceiver;
 
 
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -107,6 +102,10 @@ public class WifiFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         /////////////////Roda a função que envia o código para o servidor a cada 20 minutos
         Timer timer = new Timer();
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        String currentTime = new SimpleDateFormat("HH:mm:ss").format(timestamp.getTime());
+
+
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
@@ -129,7 +128,7 @@ public class WifiFragment extends Fragment {
 
                             Log.d("batata",isConnected+SSID+macAddress+" "+Frequency);
 
-                            sendWifiDataToServer(view,isConnected,SSID,macAddress,Frequency);
+                            sendWifiDataToServer(view,isConnected,SSID,macAddress,Frequency,currentTime);
                             printWifiDataOnScreen(view,SSID,Frequency,macAddress,isConnected);
                         }else {
                             printWifiDataOnScreen(view,"","","",isConnected);
@@ -139,19 +138,19 @@ public class WifiFragment extends Fragment {
             }
         },0,WifiIntervalChange);
     }
-    public void sendWifiDataToServer(View view,String isConnected,String SSID,String macAddress,String Frequency){
+    public void sendWifiDataToServer(View view,String isConnected,String SSID,String macAddress,String Frequency,String currentTime){
         ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost",8080).usePlaintext().build();
         WifiServiceGrpc.WifiServiceBlockingStub wifiStub = WifiServiceGrpc.newBlockingStub(channel);
         WifiInformationsRequest wifiInformationsRequest = WifiInformationsRequest.newBuilder()
                 .setStatus(isConnected).setSSID(SSID)
                 .setMACAdress(macAddress).setFrequency(Frequency)
-                .build();
+                .setCurrentTime(currentTime).build();
         WifiInformationsResponse response= wifiStub.wifiInformations(wifiInformationsRequest);
 
         if(response.getMessage().equals("Dados recebidos com sucesso")){
             Log.d("sendWifiServer",SSID+macAddress+" "+Frequency);
 
-            sendDataToRoom(SSID,Frequency,macAddress);
+            sendDataToRoom(SSID,Frequency,macAddress,currentTime);
 
         }else{
             Log.d("BancoWifis","wifis");///////////////////////
@@ -179,19 +178,23 @@ public void printWifiDataOnScreen(View view, String SSID, String Frequency, Stri
     }
 
 }
-public void sendDataToRoom(String SSID, String Frequency, String macAddress){
+public void sendDataToRoom(String SSID, String Frequency, String macAddress,String currentTime) {
     WifiDatabase db = Room.databaseBuilder(getActivity().getApplicationContext(),
             WifiDatabase.class,"wifi-database").allowMainThreadQueries().build();
 
-    Wifi currentWifi = new Wifi("Conectado",macAddress,SSID,Frequency);
-    Log.d("sendWifiRoom",SSID+macAddress+" "+Frequency);
-    db.wifiDAO().insertAll(currentWifi);
-    Log.d("batata","pos");
-    List<Wifi> wifiList = db.wifiDAO().getAllWifi();
+    WifiInfoEntity entity = new WifiInfoEntity();
+
+    WifiInfosMapper currentWifi = new WifiInfosMapper(entity);
+
+    currentWifi.setUpWifiInfo("Conectado",SSID,Frequency,macAddress,currentTime);
+    db.wifiDAO().insertAll(currentWifi.wifiEntity);
+
+    List<WifiInfoEntity> wifiList = db.wifiDAO().getAllWifi();
+
     String wifis="";
 
-    for (Wifi wifiItem : wifiList){
-        wifis+= wifiItem.status + " - " + wifiItem.SSID + " - " + wifiItem.wifiFrequency + " - " +  wifiItem.wifiMacAddress;
+    for (WifiInfoEntity wifiItem : wifiList){
+        wifis+= wifiItem.wifiID+ " - " + wifiItem.status + " - " + wifiItem.SSID + " - " + wifiItem.wifiFrequency + " - " +  wifiItem.wifiMacAddress+ " - " + wifiItem.wifiCurrentTime;
     }
 
     Log.d("BancoWifis",wifis);

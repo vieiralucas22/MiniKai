@@ -3,6 +3,9 @@ package com.example.minikai.room;
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.Query;
+import com.example.minikai.room.Entity.WifiInfoEntity;
+
+import com.example.minikai.room.Entity.WifiInfoEntity;
 
 import java.util.List;
 
@@ -10,8 +13,8 @@ import java.util.List;
 public interface WifiDAO {
 
     @Insert
-    void insertAll (Wifi... wifis);
+    void insertAll (WifiInfoEntity... wifis);
 
-    @Query("SELECT * FROM Wifi")
-    List<Wifi> getAllWifi();
+    @Query("SELECT * FROM WifiInfoEntity")
+    List<WifiInfoEntity> getAllWifi();
 }
