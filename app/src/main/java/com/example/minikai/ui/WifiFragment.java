@@ -19,6 +19,8 @@ import android.widget.TextView;
 
 //import com.example.minikai.Manifest;
 import com.example.minikai.R;
+import com.example.minikai.ServicesWifi;
+import com.example.minikai.WifiFunctions;
 import com.example.minikai.room.Entity.WifiInfoEntity;
 import com.example.minikai.room.WifiInfos.WifiInfos;
 import com.example.minikai.room.WifiDatabase;
@@ -87,7 +89,6 @@ public class WifiFragment extends Fragment {
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
 
-
     }
 
     @Override
@@ -102,9 +103,9 @@ public class WifiFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         /////////////////Roda a função que envia o código para o servidor a cada 20 minutos
         Timer timer = new Timer();
+        WifiFunctions wifiFunctions = new WifiFunctions();
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         String currentTime = new SimpleDateFormat("HH:mm:ss").format(timestamp.getTime());
-
 
         timer.schedule(new TimerTask() {
             @Override
@@ -126,10 +127,9 @@ public class WifiFragment extends Fragment {
 
                         if(!wifi.getSSID().equals("<unknown ssid>") && !wifi.getBSSID().equals("02:00:00:00:00:00") && !Integer.toString(wifi.getFrequency()).equals("-1") && wifiManager.isWifiEnabled()){
 
-                            Log.d("batata",isConnected+SSID+macAddress+" "+Frequency);
-
-                            sendWifiDataToServer(view,isConnected,SSID,macAddress,Frequency,currentTime);
+                            wifiFunctions.sendWifiDataToServer(isConnected,SSID,macAddress,Frequency,currentTime,getActivity().getApplicationContext(),"WifiFragment");
                             printWifiDataOnScreen(view,SSID,Frequency,macAddress,isConnected);
+
                         }else {
                             printWifiDataOnScreen(view,"","","",isConnected);
                         }
@@ -138,66 +138,28 @@ public class WifiFragment extends Fragment {
             }
         },0,WifiIntervalChange);
     }
-    public void sendWifiDataToServer(View view,String isConnected,String SSID,String macAddress,String Frequency,String currentTime){
-        ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost",8080).usePlaintext().build();
-        WifiServiceGrpc.WifiServiceBlockingStub wifiStub = WifiServiceGrpc.newBlockingStub(channel);
-        WifiInformationsRequest wifiInformationsRequest = WifiInformationsRequest.newBuilder()
-                .setStatus(isConnected).setSSID(SSID)
-                .setMACAdress(macAddress).setFrequency(Frequency)
-                .setCurrentTime(currentTime).build();
-        WifiInformationsResponse response= wifiStub.wifiInformations(wifiInformationsRequest);
 
-        if(response.getMessage().equals("Dados recebidos com sucesso")){
-            Log.d("sendWifiServer",SSID+macAddress+" "+Frequency);
 
-            sendDataToRoom(SSID,Frequency,macAddress,currentTime);
+    public void printWifiDataOnScreen(View view, String SSID, String Frequency, String macAddress, String isConnected){
+        TextView StatusTextview =(TextView) view.findViewById(R.id.wifiStatus);
+        TextView SSIDTextview =(TextView) view.findViewById(R.id.SSID);
+        TextView frequencyTextview =(TextView) view.findViewById(R.id.wifiFrequency);
+        TextView macAdressTextview =(TextView) view.findViewById(R.id.wifiMACAdress);
+        TextView disconnectedWifi =(TextView) view.findViewById(R.id.DisconnectedWifi);
 
+
+        if (isConnected.equals("true")){
+            StatusTextview.setText(" Conectado");
+            SSIDTextview.setText(" "+SSID);
+            frequencyTextview.setText(" "+Frequency);
+            macAdressTextview.setText(" "+ macAddress);
         }else{
-            Log.d("BancoWifis","wifis");///////////////////////
+            disconnectedWifi.setText("Wifi desativado");
+            StatusTextview.setText(" ");
+            SSIDTextview.setText(" ");
+            frequencyTextview.setText(" ");
+            macAdressTextview.setText(" ");
         }
+
     }
-public void printWifiDataOnScreen(View view, String SSID, String Frequency, String macAddress, String isConnected){
-    TextView StatusTextview =(TextView) view.findViewById(R.id.wifiStatus);
-    TextView SSIDTextview =(TextView) view.findViewById(R.id.SSID);
-    TextView frequencyTextview =(TextView) view.findViewById(R.id.wifiFrequency);
-    TextView macAdressTextview =(TextView) view.findViewById(R.id.wifiMACAdress);
-    TextView disconnectedWifi =(TextView) view.findViewById(R.id.DisconnectedWifi);
-
-
-    if (isConnected.equals("true")){
-        StatusTextview.setText(" Conectado");
-        SSIDTextview.setText(" "+SSID);
-        frequencyTextview.setText(" "+Frequency);
-        macAdressTextview.setText(" "+ macAddress);
-    }else{
-        disconnectedWifi.setText("Wifi desativado");
-        StatusTextview.setText(" ");
-        SSIDTextview.setText(" ");
-        frequencyTextview.setText(" ");
-        macAdressTextview.setText(" ");
-    }
-
-}
-public void sendDataToRoom(String SSID, String Frequency, String macAddress,String currentTime) {
-    WifiDatabase db = Room.databaseBuilder(getActivity().getApplicationContext(),
-            WifiDatabase.class,"wifi-database").allowMainThreadQueries().build();
-
-    WifiInfoEntity entity = new WifiInfoEntity();
-
-    WifiInfosMapper currentWifi = new WifiInfosMapper(entity);
-
-    currentWifi.setUpWifiInfo("Conectado",SSID,Frequency,macAddress,currentTime);
-    db.wifiDAO().insertAll(currentWifi.wifiEntity);
-
-    List<WifiInfoEntity> wifiList = db.wifiDAO().getAllWifi();
-
-    String wifis="";
-
-    for (WifiInfoEntity wifiItem : wifiList){
-        wifis+= wifiItem.wifiID+ " - " + wifiItem.status + " - " + wifiItem.SSID + " - " + wifiItem.wifiFrequency + " - " +  wifiItem.wifiMacAddress+ " - " + wifiItem.wifiCurrentTime;
-    }
-
-    Log.d("BancoWifis",wifis);
-}
-
 }

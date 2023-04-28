@@ -18,4 +18,9 @@ message WifiInformationsRequest {
 message WifiInformationsResponse {
   string message = 1;
   int32 code =2;
+  string status = 3;
+  string SSID = 4;
+  string MACAdress = 5;
+  string Frequency = 6;
+  string currentTime = 7;
 }

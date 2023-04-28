@@ -6,10 +6,21 @@ import android.content.Intent;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.util.Log;
 import android.widget.Toast;
 
-public class wifiReceiver extends BroadcastReceiver {
+import androidx.room.Room;
 
+import com.example.minikai.room.WifiDatabase;
+import com.proto.wifiProto.WifiInformationsResponse;
+
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+
+public class wifiReceiver extends BroadcastReceiver {
+    ServicesWifi servicesWifi =new ServicesWifi();
+    Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+    String currentTime = new SimpleDateFormat("HH:mm:ss").format(timestamp.getTime());
     @Override
     public void onReceive(Context context, Intent intent) {
 
@@ -22,7 +33,10 @@ public class wifiReceiver extends BroadcastReceiver {
                     WifiInfo wifiInfo = wifiManager.getConnectionInfo();
                     if (wifiInfo != null) {
                         String ssid = wifiInfo.getSSID();
-
+//                        String macAddress = wifiInfo.getBSSID();
+//                        String Frequency = Integer.toString(wifiInfo.getFrequency());
+//                        Log.d("Receiver",ssid+" "+macAddress+" "+Frequency+" "+currentTime);
+//                       servicesWifi.sendWifiDataToServer("Conectado",ssid,macAddress,Frequency,currentTime, context.getApplicationContext(),"onReceive");
                         Toast.makeText(context, "Conectado a rede Wi-Fi " + ssid , Toast.LENGTH_SHORT).show();
                     }
                 } else {
