@@ -1,5 +1,7 @@
 package com.example.minikai.room.WifiInfos;
 
+import javax.inject.Inject;
+
 public class WifiInfos {
 
 public int wifiID;
@@ -10,47 +12,52 @@ public String SSID;
 public String wifiFrequency;
 public String wifiCurrentTime;
 
-    public WifiInfos() {}
-
-
-    public String getStatus() {
-        return status;
+@Inject
+    public WifiInfos (String status,String SSID, String Frequency, String macAddress,String wifiCurrentTime) {
+        this.status =status;
+        this.SSID =SSID;
+        this.wifiFrequency =Frequency;
+        this.wifiMacAddress = macAddress;
+        this.wifiCurrentTime = wifiCurrentTime;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getWifiMacAddress() {
-        return wifiMacAddress;
+    public void setWifiID(int wifiID) {
+        this.wifiID = wifiID;
     }
 
     public void setWifiMacAddress(String wifiMacAddress) {
         this.wifiMacAddress = wifiMacAddress;
     }
 
-    public String getSSID() {
-        return SSID;
-    }
-
     public void setSSID(String SSID) {
         this.SSID = SSID;
-    }
-
-    public String getWifiFrequency() {
-        return wifiFrequency;
     }
 
     public void setWifiFrequency(String wifiFrequency) {
         this.wifiFrequency = wifiFrequency;
     }
 
-    public String getWifiCurrentTime() {
-        return wifiCurrentTime;
-    }
-
     public void setWifiCurrentTime(String wifiCurrentTime) {
         this.wifiCurrentTime = wifiCurrentTime;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+    public void setStatus(String status) {
+        this.status = status;
+    }
+    public String getWifiMacAddress() {
+        return wifiMacAddress;
+    }
+    public String getSSID() {
+        return SSID;
+    }
+    public String getWifiFrequency() {
+        return wifiFrequency;
+    }
+    public String getWifiCurrentTime() {
+        return wifiCurrentTime;
     }
 
     @Override

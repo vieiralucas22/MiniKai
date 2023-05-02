@@ -1,5 +1,6 @@
 package com.example.minikai.ui;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
@@ -11,6 +12,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 
 import com.example.minikai.R;
+import com.example.minikai.ServicesWifi;
 
 /**
  * A simple {@link Fragment} subclass.
